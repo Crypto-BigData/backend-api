@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validate } from './config/env.validation';
+import { MarketDataModule } from './market-data/market-data.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { validate } from './config/env.validation';
       isGlobal: true,
       validate,
     }),
+    MarketDataModule,
   ],
   controllers: [AppController],
   providers: [AppService],
