@@ -1,5 +1,6 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { ApiError } from '../interfaces/api-error.interface';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -13,16 +14,32 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message =
+    const exceptionResponse =
       exception instanceof HttpException
         ? exception.getResponse()
-        : 'Internal server error';
+        : null;
 
-    response.status(status).json({
+    let message: string | string[] = 'Internal server error';
+    let error = 'Internal Server Error';
+
+    if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      const resObj = exceptionResponse as any;
+      message = resObj.message || message;
+      error = resObj.error || error;
+    } else if (typeof exceptionResponse === 'string') {
+      message = exceptionResponse;
+    } else if (exception instanceof Error) {
+      message = exception.message;
+    }
+
+    const errorResponse: ApiError = {
       statusCode: status,
+      message,
+      error,
       timestamp: new Date().toISOString(),
       path: request.url,
-      message: typeof message === 'object' && message['message'] ? message['message'] : message,
-    });
+    };
+
+    response.status(status).json(errorResponse);
   }
 }
