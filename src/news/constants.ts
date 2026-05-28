@@ -1,0 +1,1 @@
+export const NEWS_REPOSITORY = 'NEWS_REPOSITORY';
