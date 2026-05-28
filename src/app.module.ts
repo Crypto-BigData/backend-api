@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { validate } from './config/env.validation';
 import { MarketDataModule } from './market-data/market-data.module';
 import { NewsModule } from './news/news.module';
+import { SignalsModule } from './signals/signals.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { NewsModule } from './news/news.module';
     }),
     MarketDataModule,
     NewsModule,
+    SignalsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
