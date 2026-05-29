@@ -3,7 +3,7 @@ import { NewsController } from './news.controller';
 import { NewsService } from './news.service';
 import { NEWS_REPOSITORY } from './constants';
 import { MockNewsRepository } from './repositories/mock-news.repository';
-import { MongoNewsRepository } from './repositories/mongo-news.repository';
+import { ClickHouseNewsRepository } from './repositories/clickhouse-news.repository';
 
 @Module({
   controllers: [NewsController],
@@ -13,7 +13,7 @@ import { MongoNewsRepository } from './repositories/mongo-news.repository';
       provide: NEWS_REPOSITORY,
       useClass: process.env.USE_MOCK === 'true'
         ? MockNewsRepository
-        : MongoNewsRepository,
+        : ClickHouseNewsRepository,
     },
   ],
 })

@@ -10,7 +10,12 @@ export class MarketDataService {
     private readonly repository: IMarketDataRepository,
   ) {}
 
-  async getKlines(symbol: string, interval: string, limit: number = 100): Promise<MarketData[]> {
-    return this.repository.getKlines(symbol, interval, limit);
+  async getKlines(
+    ticker: string,
+    fromTime: number,
+    toTime: number,
+    interval: number,
+  ): Promise<MarketData[]> {
+    return this.repository.getKlines(ticker, fromTime, toTime, interval);
   }
 }

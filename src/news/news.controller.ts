@@ -7,9 +7,33 @@ import { NewsService } from './news.service';
 export class NewsController {
   constructor(private readonly newsService: NewsService) {}
 
-  @Get('latest')
+  @Get()
   @CacheTTL(30000) // Cache 30s
-  async getLatestNews(@Query('limit') limit: number = 10) {
-    return this.newsService.getLatestNews(Number(limit));
+  async getNews(
+    @Query('fromTime') fromTime?: string,
+    @Query('toTime') toTime?: string,
+    @Query('page') page: string = '1',
+    @Query('pageSize') pageSize: string = '20',
+  ) {
+    // Defaults: nếu không truyền → lấy 7 ngày gần nhất (publishedOn = seconds!)
+    const nowSec = Math.floor(Date.now() / 1000);
+    const from = fromTime ? Number(fromTime) : nowSec - 7 * 24 * 60 * 60;
+    const to = toTime ? Number(toTime) : nowSec;
+
+    return this.newsService.getNews(from, to, Number(page), Number(pageSize));
+  }
+
+  @Get('limit')
+  @CacheTTL(30000) // Cache 30s
+  async getNewsLimit(
+    @Query('fromTime') fromTime?: string,
+    @Query('toTime') toTime?: string,
+    @Query('limit') limit: string = '10',
+  ) {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const from = fromTime ? Number(fromTime) : nowSec - 7 * 24 * 60 * 60;
+    const to = toTime ? Number(toTime) : nowSec;
+
+    return this.newsService.getNewsLimit(from, to, Number(limit));
   }
 }
