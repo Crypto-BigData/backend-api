@@ -15,10 +15,10 @@ export class NewsController {
     @Query('page') page: string = '1',
     @Query('pageSize') pageSize: string = '20',
   ) {
-    // Defaults: nếu không truyền → lấy 7 ngày gần nhất (publishedOn = seconds!)
-    const nowSec = Math.floor(Date.now() / 1000);
-    const from = fromTime ? Number(fromTime) : nowSec - 7 * 24 * 60 * 60;
-    const to = toTime ? Number(toTime) : nowSec;
+    // Defaults: nếu không truyền → lấy 7 ngày gần nhất (tính bằng ms để đồng bộ với MarketData)
+    const now = Date.now();
+    const from = fromTime ? Number(fromTime) : now - 7 * 24 * 60 * 60 * 1000;
+    const to = toTime ? Number(toTime) : now;
 
     return this.newsService.getNews(from, to, Number(page), Number(pageSize));
   }
@@ -30,9 +30,9 @@ export class NewsController {
     @Query('toTime') toTime?: string,
     @Query('limit') limit: string = '10',
   ) {
-    const nowSec = Math.floor(Date.now() / 1000);
-    const from = fromTime ? Number(fromTime) : nowSec - 7 * 24 * 60 * 60;
-    const to = toTime ? Number(toTime) : nowSec;
+    const now = Date.now();
+    const from = fromTime ? Number(fromTime) : now - 7 * 24 * 60 * 60 * 1000;
+    const to = toTime ? Number(toTime) : now;
 
     return this.newsService.getNewsLimit(from, to, Number(limit));
   }

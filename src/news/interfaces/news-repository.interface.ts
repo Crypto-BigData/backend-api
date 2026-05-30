@@ -9,7 +9,7 @@ export interface NewsPaginatedResult {
 }
 
 /**
- * fromTime/toTime = epoch seconds. getNews trả về kèm total count cho pagination.
+ * fromTime/toTime = epoch milliseconds. getNews trả về kèm total count cho pagination.
  */
 export interface INewsRepository {
   getNews(
