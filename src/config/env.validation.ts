@@ -17,21 +17,24 @@ export class EnvironmentVariables {
   PORT: number = 3000;
 
   @IsString()
-  MONGO_URI: string;
-
-  @IsString()
-  CLICKHOUSE_URL: string;
-
-  @IsString()
-  KAFKA_BROKERS: string;
+  @IsOptional()
+  CLICKHOUSE_URL: string = 'http://localhost:8123';
 
   @IsString()
   @IsOptional()
-  BINANCE_API_KEY: string;
+  CLICKHOUSE_DATABASE: string = 'default';
 
   @IsString()
   @IsOptional()
-  BINANCE_API_SECRET: string;
+  CLICKHOUSE_USER: string = 'default';
+
+  @IsString()
+  @IsOptional()
+  CLICKHOUSE_PASSWORD: string = '';
+
+  @IsString()
+  @IsOptional()
+  USE_MOCK: string = 'true';
 }
 
 export function validate(config: Record<string, unknown>) {
