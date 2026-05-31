@@ -34,6 +34,18 @@ export class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
+  REDIS_URL: string = 'redis://localhost:6379';
+
+  @IsNumber()
+  @IsOptional()
+  WORKER_PORT: number = 3002;
+
+  @IsNumber()
+  @IsOptional()
+  BACKFILL_MONTHS: number = 6;
+
+  @IsString()
+  @IsOptional()
   USE_MOCK: string = 'true';
 }
 
