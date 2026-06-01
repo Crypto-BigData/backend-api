@@ -8,6 +8,7 @@ import { ClickHouseModule } from './config/clickhouse.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { NewsModule } from './news/news.module';
 import { SignalsModule } from './signals/signals.module';
+import { OverviewModule } from './overview/overview.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SignalsModule } from './signals/signals.module';
     MarketDataModule,
     NewsModule,
     SignalsModule,
+    OverviewModule,
   ],
   controllers: [AppController],
   providers: [AppService],
