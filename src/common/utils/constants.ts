@@ -14,4 +14,6 @@ export enum RedisKey {
   BINANCE_TICKERS = 'binance_tickers',
   LOCK_SYNC_NEW_KLINE = 'lock:sync_new_kline',
   LOCK_SYNC_OLD_KLINE = 'lock:sync_old_kline',
+  LOCK_SYNC_LATEST_NEWS = 'lock:sync_latest_news',
+  LOCK_SYNC_OLD_NEWS = 'lock:sync_old_news',
 }

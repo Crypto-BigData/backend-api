@@ -6,6 +6,8 @@ import { ClickHouseModule } from '../config/clickhouse.module';
 import { RedisModule } from '../config/redis.module';
 import { BinanceSyncService } from './binance-sync.service';
 import { WorkerKlineService } from './worker-kline.service';
+import { CoindeskSyncService } from './coindesk-sync.service';
+import { WorkerNewsService } from './worker-news.service';
 
 /**
  * Root module cho Worker process (worker.ts).
@@ -22,6 +24,11 @@ import { WorkerKlineService } from './worker-kline.service';
     ClickHouseModule,
     RedisModule,
   ],
-  providers: [BinanceSyncService, WorkerKlineService],
+  providers: [
+    BinanceSyncService,
+    WorkerKlineService,
+    CoindeskSyncService,
+    WorkerNewsService,
+  ],
 })
 export class WorkerModule {}

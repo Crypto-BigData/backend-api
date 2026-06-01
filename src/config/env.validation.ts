@@ -46,6 +46,10 @@ export class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
+  COINDESK_API_KEYS: string = '';
+
+  @IsString()
+  @IsOptional()
   USE_MOCK: string = 'true';
 }
 
