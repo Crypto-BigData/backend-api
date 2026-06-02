@@ -9,6 +9,7 @@ import { MarketDataModule } from './market-data/market-data.module';
 import { NewsModule } from './news/news.module';
 import { SignalsModule } from './signals/signals.module';
 import { OverviewModule } from './overview/overview.module';
+import { IndicatorsModule } from './indicators/indicators.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { OverviewModule } from './overview/overview.module';
     NewsModule,
     SignalsModule,
     OverviewModule,
+    IndicatorsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
