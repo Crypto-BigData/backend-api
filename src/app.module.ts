@@ -10,6 +10,7 @@ import { NewsModule } from './news/news.module';
 import { SignalsModule } from './signals/signals.module';
 import { OverviewModule } from './overview/overview.module';
 import { IndicatorsModule } from './indicators/indicators.module';
+import { NewsImpactModule } from './news-impact/news-impact.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { IndicatorsModule } from './indicators/indicators.module';
     SignalsModule,
     OverviewModule,
     IndicatorsModule,
+    NewsImpactModule,
   ],
   controllers: [AppController],
   providers: [AppService],
