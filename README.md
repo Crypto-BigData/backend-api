@@ -43,6 +43,19 @@ The system consists of two independent processes sharing the same database:
 *   NPM or Yarn
 *   (Optional) ClickHouse & Redis via Docker if you wish to test with real data pipelines.
 
+---
+
+### 🌟 Frontend Team Quickstart (No Database Required)
+If you are a Frontend Developer building the UI, you **do not** need to install ClickHouse or Redis. The API can run entirely in-memory using Mock Data.
+
+1. Clone the repo and run `npm install`.
+2. Copy the environment file: `cp .env.example .env`.
+3. Open `.env` and ensure `USE_MOCK=true` is set.
+4. Run the server: `npm run start:dev`.
+5. Open your browser and go to **[http://localhost:3000/api/docs](http://localhost:3000/api/docs)** to view the interactive API Documentation (Swagger).
+
+---
+
 ### 2. Install Dependencies
 ```bash
 npm install

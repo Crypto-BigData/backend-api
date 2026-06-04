@@ -1,6 +1,6 @@
 export interface TradingSignal {
   id: string;
-  symbol: string;
+  ticker: string;
   type: 'PUMP' | 'DUMP' | 'VOLATILITY_SPIKE';
   confidence: number;
   detectedAt: Date;

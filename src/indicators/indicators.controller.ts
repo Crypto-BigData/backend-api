@@ -8,26 +8,25 @@ import {
 import { CacheTTL } from '@nestjs/cache-manager';
 import { IndicatorsCacheInterceptor } from './indicators-cache.interceptor';
 import { IndicatorsService } from './indicators.service';
-import { IndicatorResult } from './interfaces/indicator-result.interface';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { IndicatorQueryDto } from './dto/indicator-query.dto';
+import { IndicatorResponseDto } from './dto/indicator-response.dto';
 
 const SUPPORTED_INDICATORS = ['ma', 'ema', 'rsi', 'bb'] as const;
 
+@ApiTags('Indicators')
 @Controller('indicators')
 @UseInterceptors(IndicatorsCacheInterceptor)
 export class IndicatorsController {
   constructor(private readonly indicatorsService: IndicatorsService) {}
 
   @Get()
+  @ApiOperation({ summary: 'Get technical indicators (MA, EMA, RSI, Bollinger Bands)' })
+  @ApiResponse({ status: 200, description: 'Indicators result object', type: IndicatorResponseDto })
   @CacheTTL(60000) // 60s — cùng TTL với kline
-  async getIndicators(
-    @Query('ticker') ticker: string = 'BTCUSDT',
-    @Query('fromTime') fromTime?: string,
-    @Query('toTime') toTime?: string,
-    @Query('interval') interval: string = '300000',
-    @Query('indicators') indicatorsParam: string = 'ma',
-  ): Promise<IndicatorResult> {
+  async getIndicators(@Query() query: IndicatorQueryDto) {
     // 1. Parse & validate indicators param
-    const requested = indicatorsParam
+    const requested = (query.indicators ?? 'ma')
       .split(',')
       .map((s) => s.trim().toLowerCase());
     const invalid = requested.filter(
@@ -44,12 +43,14 @@ export class IndicatorsController {
 
     // 3. Parse time params (same pattern as kline controller)
     const now = Date.now();
-    const from = fromTime ? Number(fromTime) : now - 24 * 60 * 60 * 1000;
-    const to = toTime ? Number(toTime) : now;
-    const intervalMs = Number(interval);
+    const from = query.fromTime ? Number(query.fromTime) : now - 24 * 60 * 60 * 1000;
+    const to = query.toTime ? Number(query.toTime) : now;
+    const intervalMs = Number(query.interval ?? '300000');
+    const tickerStr = query.ticker?.toUpperCase() ?? 'BTCUSDT';
 
+    // 3. Delegate to service
     return this.indicatorsService.calculate(
-      ticker.toUpperCase(),
+      tickerStr,
       from,
       to,
       intervalMs,

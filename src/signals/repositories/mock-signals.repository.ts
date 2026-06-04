@@ -8,7 +8,7 @@ export class MockSignalsRepository implements ISignalsRepository {
     const mockData: TradingSignal[] = [
       {
         id: 'sig-1',
-        symbol: 'BTCUSDT',
+        ticker: 'BTCUSDT',
         type: 'PUMP',
         confidence: 0.85,
         detectedAt: new Date(Date.now() - 1000 * 60 * 2), // 2 mins ago
@@ -20,7 +20,7 @@ export class MockSignalsRepository implements ISignalsRepository {
       },
       {
         id: 'sig-2',
-        symbol: 'ETHUSDT',
+        ticker: 'ETHUSDT',
         type: 'VOLATILITY_SPIKE',
         confidence: 0.72,
         detectedAt: new Date(Date.now() - 1000 * 60 * 5), // 5 mins ago
@@ -32,7 +32,7 @@ export class MockSignalsRepository implements ISignalsRepository {
       },
       {
         id: 'sig-3',
-        symbol: 'SOLUSDT',
+        ticker: 'SOLUSDT',
         type: 'DUMP',
         confidence: 0.91,
         detectedAt: new Date(Date.now() - 1000 * 60 * 10), // 10 mins ago
