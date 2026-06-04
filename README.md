@@ -1,98 +1,96 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Crypto Analytics Backend API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A high-performance Backend API serving a Crypto Market Analytics Dashboard (Big Data Project), designed to process and analyze massive volumes of market data through **ClickHouse**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Built with **NestJS**, the project features a fully decoupled architecture separating the Read pipeline (API Server) and Write pipeline (Data Crawler Worker), ensuring modularity, scalability, and seamless integration with the Data Team's infrastructure.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Architecture
 
-## Project setup
+The system consists of two independent processes sharing the same database:
 
+1. **API Server (Port 3000):** **Read-only**. Handles requests from the Frontend, queries ClickHouse, performs complex application-layer calculations (e.g., Technical Indicators), and returns results. Leverages `cache-manager` with Redis for high-speed response caching.
+2. **Worker Service (Port 3002):** **Write-only** (Crawler). Fetches data from Binance (Market Data) and CoinDesk (News), then ingests it into ClickHouse. Utilizes Redis Distributed Locks to prevent duplicate cron jobs when scaled.
+   > **Note:** If the Data Team already has a robust Data Pipeline (e.g., Spark/Kafka/Airflow) handling ClickHouse ingestion, **you do not need to run this Worker Service**.
+
+---
+
+## Key Modules
+
+*   **Market Data (`/kline`)**: Retrieves candlestick (OHLCV) data with the ability to dynamically aggregate 5-minute candles into higher timeframes directly via SQL.
+*   **News (`/news`)**: Provides high-speed paginated market news using parallel count and fetch queries.
+*   **Overview (`/overview`)**: Dashboard aggregates including Market Summary, Top Gainers/Losers, and Volume Spike anomaly detection.
+*   **Indicators (`/indicators`)**: Blazing-fast in-memory calculation engine for technical indicators (SMA, EMA, Wilder's RSI, Bollinger Bands) entirely independent of DB-native functions.
+*   **News Impact (`/news-impact`)**: Analyzes the impact of news on price action using a highly optimized **2-phase querying strategy** (equality lookup) to prevent timeouts caused by distributed range JOINs in ClickHouse.
+*   **Signals (`/signals`)**: *(Upcoming)* Algorithmic trading alerts.
+
+---
+
+## Tech Stack
+
+*   **Framework:** NestJS (Node.js 18+ / TypeScript)
+*   **Primary Database (OLAP):** ClickHouse (via `@clickhouse/client`)
+*   **Cache & Locking (In-memory):** Redis
+*   **Design Patterns:** Repository Pattern, Dependency Injection
+
+---
+
+## Local Setup
+
+### 1. Prerequisites
+*   Node.js v18+
+*   NPM or Yarn
+*   (Optional) ClickHouse & Redis via Docker if you wish to test with real data pipelines.
+
+### 2. Install Dependencies
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
-
+### 3. Environment Variables
+Copy the example file and configure it:
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Run tests
+**Crucial Variables:**
+*   `USE_MOCK=true`: Runs the entire system using Mock Repositories (dummy data). Bypasses the need for ClickHouse or Redis. **Highly recommended for the Frontend Team during UI development.**
+*   `USE_MOCK=false`: Connects to the real ClickHouse database.
+*   `CLICKHOUSE_URL`, `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`: Production database credentials.
+*   `REDIS_URL`: Redis Cache connection string.
 
+### 4. Run Commands
+
+**Start the API Server (For Devs & Frontend):**
 ```bash
-# unit tests
-$ npm run test
+# Development mode (watch mode)
+npm run start:dev
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Production mode
+npm run build
+npm run start:prod
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+**Start the Crawler Worker (Run ONLY if the Data Team is not providing data):**
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run start:worker
+# Or on production:
+npm run build:worker
+npm run start:worker:prod
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
+## 📘 API Contract & Conventions
 
-Check out a few resources that may come in handy when working with NestJS:
+*   **Time Units:** All time-based communication between Frontend and Backend utilizes **Epoch Milliseconds** (e.g., `1700292900000`). The backend automatically handles conversions to the respective database schema types.
+*   **Decimals:** All currency values, percentages, and floating-point technical indicators are returned as **Strings** (e.g., `"65432.12"`) to prevent IEEE-754 precision loss in JavaScript.
+*   **Null Handling:** In the event of historical data gaps (missing candles at specific timestamps), the corresponding computed values will return `null` instead of throwing an error. The Frontend should map this to `"-"` or `"N/A"`.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+---
 
-## Support
+## Authors & Contribution
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Developed as part of a Big Data academic project. 
+The Data Team is responsible for Data Ingestion and Database Schema. The Backend API Team handles high-performance querying and dashboard data aggregation.
