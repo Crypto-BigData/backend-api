@@ -74,8 +74,8 @@ cp .env.example .env
 *   `CLICKHOUSE_URL`, `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`: Production database credentials.
 *   `REDIS_URL`: Redis Cache connection string.
 *   `OPENAI_API_KEY`: *(Optional)* OpenAI API key for the Chatbot module. Without it, the chatbot endpoint returns `503`.
+*   `OPENAI_BASE_URL`: *(Optional)* Custom API base URL (e.g., to use Groq, Nvidia NIM, or Gemini instead of OpenAI).
 *   `OPENAI_MODEL`: *(Optional)* Model to use, defaults to `gpt-4o-mini`.
-
 ### 4. Run Commands
 
 **Start the API Server (For Devs & Frontend):**

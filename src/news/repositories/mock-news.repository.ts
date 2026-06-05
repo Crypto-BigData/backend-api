@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { INewsRepository, NewsPaginatedResult } from '../interfaces/news-repository.interface';
 import { NewsItem } from '../interfaces/news-item.interface';
+import { NewsFilterParams } from '../interfaces/news-filter.interface';
 
 /**
  * Mock news data cho development.
@@ -72,13 +73,29 @@ export class MockNewsRepository implements INewsRepository {
     toTime: number,
     page: number,
     pageSize: number,
+    filters?: NewsFilterParams,
   ): Promise<NewsPaginatedResult> {
     // Filter theo time range (fromTime/toTime là ms, publishedOn là seconds)
     const fromSec = Math.floor(fromTime / 1000);
     const toSec = Math.floor(toTime / 1000);
-    const filtered = this.mockData.filter(
+    
+    let filtered = this.mockData.filter(
       (n) => n.publishedOn >= fromSec && n.publishedOn <= toSec,
     );
+
+    if (filters) {
+      if (filters.sentiment) {
+        filtered = filtered.filter((n) => n.sentiment === filters.sentiment);
+      }
+      if (filters.category) {
+        const catLower = filters.category.toLowerCase();
+        filtered = filtered.filter((n) => n.categories && n.categories.toLowerCase().includes(catLower));
+      }
+      if (filters.source) {
+        const srcLower = filters.source.toLowerCase();
+        filtered = filtered.filter((n) => n.sourceName && n.sourceName.toLowerCase().includes(srcLower));
+      }
+    }
 
     const offset = (page - 1) * pageSize;
     return {

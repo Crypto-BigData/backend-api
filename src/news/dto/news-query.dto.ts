@@ -26,6 +26,24 @@ export class NewsQueryDto {
     default: '20',
   })
   pageSize?: string = '20';
+
+  @ApiPropertyOptional({
+    description: 'Filter by sentiment (e.g., positive, negative, neutral)',
+    example: 'positive',
+  })
+  sentiment?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by category (e.g., Bitcoin, DeFi)',
+    example: 'Bitcoin',
+  })
+  category?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by source name (e.g., CoinDesk)',
+    example: 'CoinDesk',
+  })
+  source?: string;
 }
 
 export class NewsLimitQueryDto {

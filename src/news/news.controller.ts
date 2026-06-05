@@ -21,7 +21,21 @@ export class NewsController {
     const from = query.fromTime ? Number(query.fromTime) : now - 7 * 24 * 60 * 60 * 1000;
     const to = query.toTime ? Number(query.toTime) : now;
 
-    return this.newsService.getNews(from, to, Number(query.page ?? '1'), Number(query.pageSize ?? '20'));
+    const filters = query.sentiment || query.category || query.source
+      ? {
+          sentiment: query.sentiment,
+          category: query.category,
+          source: query.source,
+        }
+      : undefined;
+
+    return this.newsService.getNews(
+      from, 
+      to, 
+      Number(query.page ?? '1'), 
+      Number(query.pageSize ?? '20'),
+      filters
+    );
   }
 
   @Get('limit')

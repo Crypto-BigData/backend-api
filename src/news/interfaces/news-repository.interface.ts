@@ -1,4 +1,5 @@
 import { NewsItem } from './news-item.interface';
+import { NewsFilterParams } from './news-filter.interface';
 
 /**
  * Kết quả trả về từ getNews, bao gồm dữ liệu + tổng số bản ghi.
@@ -17,6 +18,7 @@ export interface INewsRepository {
     toTime: number,
     page: number,
     pageSize: number,
+    filters?: NewsFilterParams,
   ): Promise<NewsPaginatedResult>;
 
   getNewsLimit(
