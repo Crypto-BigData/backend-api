@@ -51,6 +51,18 @@ export class EnvironmentVariables {
   @IsString()
   @IsOptional()
   USE_MOCK: string = 'true';
+
+  @IsString()
+  @IsOptional()
+  OPENAI_API_KEY: string = '';
+
+  @IsString()
+  @IsOptional()
+  OPENAI_MODEL: string = 'gpt-4o-mini';
+
+  @IsString()
+  @IsOptional()
+  INTERNAL_API_BASE: string = '';
 }
 
 export function validate(config: Record<string, unknown>) {

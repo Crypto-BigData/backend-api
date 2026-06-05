@@ -11,6 +11,7 @@ async function bootstrap() {
     logger: winstonConfig,
   });
 
+  app.enableCors();
   app.setGlobalPrefix('api');
 
   app.useGlobalFilters(new AllExceptionsFilter());

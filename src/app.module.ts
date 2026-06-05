@@ -11,6 +11,7 @@ import { SignalsModule } from './signals/signals.module';
 import { OverviewModule } from './overview/overview.module';
 import { IndicatorsModule } from './indicators/indicators.module';
 import { NewsImpactModule } from './news-impact/news-impact.module';
+import { ChatbotModule } from './chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { NewsImpactModule } from './news-impact/news-impact.module';
     OverviewModule,
     IndicatorsModule,
     NewsImpactModule,
+    ChatbotModule,
   ],
   controllers: [AppController],
   providers: [AppService],

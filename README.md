@@ -23,7 +23,8 @@ The system consists of two independent processes sharing the same database:
 *   **Overview (`/overview`)**: Dashboard aggregates including Market Summary, Top Gainers/Losers, and Volume Spike anomaly detection.
 *   **Indicators (`/indicators`)**: Blazing-fast in-memory calculation engine for technical indicators (SMA, EMA, Wilder's RSI, Bollinger Bands) entirely independent of DB-native functions.
 *   **News Impact (`/news-impact`)**: Analyzes the impact of news on price action using a highly optimized **2-phase querying strategy** (equality lookup) to prevent timeouts caused by distributed range JOINs in ClickHouse.
-*   **Signals (`/signals`)**: *(Upcoming)* Algorithmic trading alerts.
+*   **Chatbot (`/chatbot`)**: AI-powered chatbot using **OpenAI Function Calling**. Queries internal APIs (kline, news, time-now) to answer natural language questions about crypto markets. Multi-round tool loop with 10s AbortController timeout.
+*   **Signals (`/signals`)**: Read-only endpoint serving pre-calculated trading alerts from the Worker.
 
 ---
 
@@ -72,6 +73,8 @@ cp .env.example .env
 *   `USE_MOCK=false`: Connects to the real ClickHouse database.
 *   `CLICKHOUSE_URL`, `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`: Production database credentials.
 *   `REDIS_URL`: Redis Cache connection string.
+*   `OPENAI_API_KEY`: *(Optional)* OpenAI API key for the Chatbot module. Without it, the chatbot endpoint returns `503`.
+*   `OPENAI_MODEL`: *(Optional)* Model to use, defaults to `gpt-4o-mini`.
 
 ### 4. Run Commands
 
