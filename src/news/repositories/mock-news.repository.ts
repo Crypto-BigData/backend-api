@@ -73,9 +73,11 @@ export class MockNewsRepository implements INewsRepository {
     page: number,
     pageSize: number,
   ): Promise<NewsPaginatedResult> {
-    // Filter theo time range (publishedOn = seconds)
+    // Filter theo time range (fromTime/toTime là ms, publishedOn là seconds)
+    const fromSec = Math.floor(fromTime / 1000);
+    const toSec = Math.floor(toTime / 1000);
     const filtered = this.mockData.filter(
-      (n) => n.publishedOn >= fromTime && n.publishedOn <= toTime,
+      (n) => n.publishedOn >= fromSec && n.publishedOn <= toSec,
     );
 
     const offset = (page - 1) * pageSize;
@@ -90,8 +92,10 @@ export class MockNewsRepository implements INewsRepository {
     toTime: number,
     limit: number,
   ): Promise<NewsItem[]> {
+    const fromSec = Math.floor(fromTime / 1000);
+    const toSec = Math.floor(toTime / 1000);
     const filtered = this.mockData.filter(
-      (n) => n.publishedOn >= fromTime && n.publishedOn <= toTime,
+      (n) => n.publishedOn >= fromSec && n.publishedOn <= toSec,
     );
     return filtered.slice(0, limit);
   }

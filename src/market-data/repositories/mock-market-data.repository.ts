@@ -40,8 +40,9 @@ export class MockMarketDataRepository implements IMarketDataRepository {
       const url = new URL('https://api.binance.com/api/v3/klines');
       url.searchParams.set('symbol', ticker.toUpperCase());
       url.searchParams.set('interval', binanceInterval);
-      url.searchParams.set('startTime', String(fromTime));
-      url.searchParams.set('endTime', String(toTime));
+      // Không truyền startTime/endTime để Binance luôn trả về dữ liệu mới nhất thực tế (tránh lỗi do Date.now() ở năm 2026)
+      // url.searchParams.set('startTime', String(fromTime));
+      // url.searchParams.set('endTime', String(toTime));
       url.searchParams.set('limit', '1000');
 
       const response = await fetch(url.toString());
@@ -52,25 +53,34 @@ export class MockMarketDataRepository implements IMarketDataRepository {
 
       const data: any[][] = await response.json();
 
-      // Mapper: Binance API trả về array theo thứ tự cố định
-      // [0] openTime, [1] open, [2] high, [3] low, [4] close,
-      // [5] volume, [6] closeTime, [7] quoteAssetVolume,
-      // [8] numOfTrades, [9] takerBuyBaseAssetVolume,
-      // [10] takerBuyQuoteAssetVolume, [11] ignore
-      return data.map((kline) => ({
+      if (!data || data.length === 0) return [];
+
+      // Tính offset để dời thời gian thực tế của Binance về thời gian giả lập hiện tại
+      const lastKline = data[data.length - 1];
+      const timeOffset = Date.now() - (lastKline[6] as number);
+
+      const mappedData = data.map((kline) => ({
         ticker: ticker.toUpperCase(),
-        openTime: kline[0] as number,
+        openTime: (kline[0] as number) + timeOffset,
         open: kline[1] as string,
         high: kline[2] as string,
         low: kline[3] as string,
         close: kline[4] as string,
         volume: kline[5] as string,
-        closeTime: kline[6] as number,
+        closeTime: (kline[6] as number) + timeOffset,
         quoteAssetVolume: kline[7] as string,
         numOfTrades: kline[8] as number,
         takerBuyBaseAssetVolume: kline[9] as string,
         takerBuyQuoteAssetVolume: kline[10] as string,
       }));
+
+      // Lọc các nến nằm trong khoảng thời gian yêu cầu
+      const result = mappedData.filter(
+        (kline) => kline.closeTime >= fromTime && kline.openTime <= toTime
+      );
+      
+      this.logger.log(`[DEBUG-MOCK] getKlines returned ${result.length} candles for fromTime=${fromTime}, toTime=${toTime}`);
+      return result;
     } catch (error) {
       this.logger.error(
         `Failed to fetch mock market data for ${ticker}`,

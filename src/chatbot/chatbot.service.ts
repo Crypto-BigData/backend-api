@@ -34,8 +34,13 @@ export class ChatbotService {
     this.model = this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini');
 
     const apiKey = this.config.get<string>('OPENAI_API_KEY', '');
+    const baseURL = this.config.get<string>('OPENAI_BASE_URL');
+    
     if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
+      this.openai = new OpenAI({ 
+        apiKey,
+        ...(baseURL ? { baseURL } : {})
+      });
       this.logger.log(`OpenAI client initialized (model: ${this.model})`);
     } else {
       this.logger.warn('OPENAI_API_KEY not configured — chatbot endpoint will return 503');
@@ -86,13 +91,35 @@ export class ChatbotService {
           functionCalls.map(async (call) => {
             const toolName = call.function.name;
             const args = JSON.parse(call.function.arguments);
-            this.logger.debug(`Tool call [round ${round + 1}]: ${toolName}(${JSON.stringify(args)})`);
+            this.logger.log(`[DEBUG-TOOL] Tool call [round ${round + 1}]: ${toolName}(${JSON.stringify(args)})`);
 
-            const result = await this.executeTool(toolName, args);
+            let result = await this.executeTool(toolName, args) as any;
+
+            // Handle TransformInterceptor wrapper
+            let dataArray = result;
+            if (result && typeof result === 'object' && Array.isArray(result.data)) {
+              dataArray = result.data;
+            }
+
+            if (Array.isArray(dataArray) && dataArray.length > 30) {
+              this.logger.warn(`[DEBUG-TOOL] Tool ${toolName} returned ${dataArray.length} items. Hard capping to 30 to save TPM.`);
+              dataArray = dataArray.slice(-30); // Take last 30 items
+              
+              if (result.data) {
+                result.data = dataArray;
+              } else {
+                result = dataArray;
+              }
+            }
+
+            // Log response size to debug TPM bottleneck
+            const payloadString = JSON.stringify(result);
+            this.logger.log(`Tool ${toolName} returned payload of length: ${payloadString.length} chars`);
+
             return {
               role: 'tool' as const,
               tool_call_id: call.id,
-              content: JSON.stringify(result),
+              content: payloadString,
             };
           }),
         );
@@ -125,13 +152,17 @@ QUY TẮC BẮT BUỘC:
 - KHÔNG khẳng định nguyên nhân tuyệt đối
 - Khi nói "tại sao giá giảm", chỉ mô tả dữ liệu quan sát được (correlation)
 - Nếu thiếu dữ liệu, phải nói rõ
-- Khi câu hỏi chứa thời gian tương đối (ví dụ: "gần đây", "2 giờ gần đây", "24h qua", "hôm nay"):
-  → PHẢI gọi tool getTimeNow trước
-  → Tự động suy ra fromTime = now - khoảng thời gian tương ứng
-  → KHÔNG được hỏi lại người dùng
-- Data về giá, ohlcv thì phải dùng getKlines
-- Data về tin tức, thì phải dùng getNewsLimit
-- Dùng 3 loại data getTimeNow, getKlines, getNewsLimit để trả lời câu hỏi người dùng
+- Nguyên tắc: 
+1. KHÔNG BAO GIỜ nhắc đến tên các công cụ (tools) nội bộ như getKlines, getNewsLimit trong câu trả lời. Giữ bí mật về mặt kỹ thuật.
+2. Format các con số tiền tệ rõ ràng, dễ đọc (ví dụ: $62,540.01 thay vì 62540.010000).
+3. Xưng "tôi" và gọi người dùng là "bạn", giọng điệu chuyên nghiệp, tự nhiên.
+4. Lưu ý: Trường 'volume' là số lượng coin, trường 'quoteAssetVolume' là giá trị USD. Đừng nhầm lẫn đơn vị.
+5. Khi người dùng hỏi dữ liệu quá khứ (hôm qua, tuần trước), hãy truyền tham số timeRange tương ứng. Tuyệt đối không tự tính toán ngày giờ.
+6. TUYỆT ĐỐI KHÔNG BỊA DATA. Nếu API trả về mảng rỗng hoặc dữ liệu không khớp với ngày tháng bạn cần tìm (vd hỏi 2020 nhưng data trả về 2026), hãy thành thật trả lời là hệ thống không có dữ liệu đó.
+7. Nếu tin nhắn của người dùng vô nghĩa (chỉ chứa dấu câu, khoảng trắng, ví dụ: '...', '"""') hoặc không rõ ràng, PHẢI yêu cầu họ đặt câu hỏi cụ thể. TUYỆT ĐỐI KHÔNG tự động gọi hàm.
+- Data về giá, ohlcv thì dùng getKlines
+- Data về tin tức thì dùng getNewsLimit
+- Kết hợp các data để đưa ra câu trả lời tốt nhất
 
 Phong cách:
 - Ngắn gọn
@@ -151,19 +182,7 @@ NẾU cần dữ liệu:
 
   private buildToolDefinitions(): OpenAI.Chat.Completions.ChatCompletionTool[] {
     return [
-      {
-        type: 'function',
-        function: {
-          name: 'getTimeNow',
-          description:
-            'Lấy timestamp hiện tại của server (epoch milliseconds). BẮT BUỘC gọi trước khi tính fromTime/toTime khi câu hỏi chứa thời gian tương đối.',
-          parameters: {
-            type: 'object',
-            properties: {},
-            required: [],
-          },
-        },
-      },
+
       {
         type: 'function',
         function: {
@@ -180,9 +199,7 @@ QUY TẮC:
 - KHÔNG sử dụng interval = 60000 (1m)
 - Interval hợp lệ: 5m (300000), 15m (900000), 1h (3600000), 4h (14400000), 1d (86400000)
 - "Giá hiện tại" = close price của cây nến gần nhất
-- Nếu câu hỏi chứa thời gian tương đối → gọi getTimeNow trước, rồi tự suy ra fromTime
-- Luôn lấy dư ít nhất 2 nến để đảm bảo có dữ liệu
-- Gap giữa fromTime và toTime luôn phải >= interval * 30
+- Nếu câu hỏi chứa thời gian tương đối (vd: hôm qua, 1 giờ trước) → KHÔNG tự tính toán timestamp. Hãy điền vào trường 'timeRange'.
 - Lựa chọn interval phù hợp để có data đủ chi tiết để phân tích
           `.trim(),
           parameters: {
@@ -192,20 +209,12 @@ QUY TẮC:
                 type: 'string',
                 description: 'Cặp giao dịch, ví dụ: BTCUSDT, ETHUSDT',
               },
-              fromTime: {
-                type: 'number',
-                description: 'Timestamp bắt đầu (epoch milliseconds)',
-              },
-              toTime: {
-                type: 'number',
-                description: 'Timestamp kết thúc (epoch milliseconds)',
-              },
-              interval: {
-                type: 'number',
-                description: `Độ dài mỗi nến (ms). Giá trị hợp lệ: 300000 (5m), 900000 (15m), 3600000 (1h), 14400000 (4h), 86400000 (1d)`,
+              timeRange: {
+                type: 'string',
+                description: 'Khoảng thời gian tương đối (vd: "today", "yesterday", "last_week", "last_month").',
               },
             },
-            required: ['ticker', 'fromTime', 'toTime', 'interval'],
+            required: ['ticker'],
           },
         },
       },
@@ -241,7 +250,8 @@ QUY TẮC:
                 description: 'Số lượng tin tối đa cần lấy',
               },
             },
-            required: ['fromTime', 'toTime', 'limit'],
+            // Groq may fail if we strictly require timestamps the LLM doesn't have yet
+            // required: ['fromTime', 'toTime', 'limit'],
           },
         },
       },
@@ -267,8 +277,45 @@ QUY TẮC:
     try {
       const url = new URL(`/api/${endpoint}`, this.baseUrl);
 
+      const safeArgs = args || {};
+
+      // Provide sensible defaults to prevent massive token usage if LLM omits parameters
+      if (name === 'getKlines') {
+        const toTime = Date.now();
+        let fromTime, toTimeFinal = toTime;
+        const interval = Number(safeArgs.interval || 86400000); // Default 1 day
+
+        if (safeArgs.timeRange === 'yesterday') {
+          toTimeFinal = toTime - 86400000;
+          fromTime = toTimeFinal - 86400000;
+        } else if (safeArgs.timeRange === 'last_week') {
+          fromTime = toTime - 7 * 86400000;
+        } else if (safeArgs.timeRange === 'last_month') {
+          fromTime = toTime - 30 * 86400000;
+        } else {
+          fromTime = toTime - interval * 10;
+        }
+
+        // Capping to prevent 413 Request Too Large (max 50 candles for LLM)
+        const maxCandles = 50;
+        if ((toTimeFinal - fromTime) / interval > maxCandles) {
+          fromTime = toTimeFinal - (maxCandles * interval);
+        }
+        
+        safeArgs.toTime = toTimeFinal;
+        safeArgs.fromTime = fromTime;
+        safeArgs.interval = interval;
+        delete safeArgs.timeRange;
+      } else if (name === 'getNewsLimit') {
+        const toTime = Date.now();
+        const fromTime = safeArgs.fromTime ?? (toTime - 3 * 86400000); // Default last 3 days
+        safeArgs.toTime = safeArgs.toTime ?? toTime;
+        safeArgs.fromTime = safeArgs.fromTime ?? fromTime;
+        safeArgs.limit = safeArgs.limit ?? 5; // Default max 5 articles to save tokens
+      }
+
       // Append args as query params (all internal API endpoints use GET with query params)
-      for (const [key, value] of Object.entries(args)) {
+      for (const [key, value] of Object.entries(safeArgs)) {
         if (value !== undefined && value !== null) {
           url.searchParams.set(key, String(value));
         }
