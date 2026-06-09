@@ -10,8 +10,8 @@ Built with **NestJS**, the project features a fully decoupled architecture separ
 
 The system consists of two independent processes sharing the same database:
 
-1. **API Server (Port 3000):** **Read-only**. Acts as a Data Gateway, handling requests from the Frontend, querying pre-aggregated data and computed facts from ClickHouse, and returning results. Leverages `cache-manager` with Redis for high-speed response caching.
-2. **Worker Service (Port 3002):** **Write-only** (Crawler). Fetches data from Binance (Market Data) and CoinDesk (News), then ingests it into ClickHouse. Utilizes Redis Distributed Locks to prevent duplicate cron jobs when scaled.
+1. **API Server (Port 3000):** **Read-only**. Acts as a Data Gateway, handling requests from the Frontend, querying pre-aggregated data and computed facts from ClickHouse, and returning results. Leverages `@nestjs/cache-manager` with an in-memory store for high-speed response caching.
+2. **Worker Service (Port 3002):** **Write-only** (Crawler). Fetches data from Binance (Market Data) and CoinDesk (News), then ingests it into ClickHouse. This service is **optional** and only needed when no external Data Pipeline is available.
    > **Note:** If the Data Team already has a robust Data Pipeline (e.g., Spark/Kafka/Airflow) handling ClickHouse ingestion, **you do not need to run this Worker Service**.
 
 ---
@@ -32,7 +32,7 @@ The system consists of two independent processes sharing the same database:
 
 *   **Framework:** NestJS (Node.js 18+ / TypeScript)
 *   **Primary Database (OLAP):** ClickHouse (via `@clickhouse/client`)
-*   **Cache & Locking (In-memory):** Redis
+*   **Cache:** In-memory (via `@nestjs/cache-manager`)
 *   **Design Patterns:** Repository Pattern, Dependency Injection
 
 ---
@@ -42,12 +42,12 @@ The system consists of two independent processes sharing the same database:
 ### 1. Prerequisites
 *   Node.js v18+
 *   NPM or Yarn
-*   (Optional) ClickHouse & Redis via Docker if you wish to test with real data pipelines.
+*   (Optional) ClickHouse via Docker if you wish to test with real data pipelines.
 
 ---
 
 ### 🌟 Frontend Team Quickstart (No Database Required)
-If you are a Frontend Developer building the UI, you **do not** need to install ClickHouse or Redis. The API can run entirely in-memory using Mock Data.
+If you are a Frontend Developer building the UI, you **do not** need to install ClickHouse. The API can run entirely in-memory using Mock Data.
 
 1. Clone the repo and run `npm install`.
 2. Copy the environment file: `cp .env.example .env`.
@@ -69,10 +69,9 @@ cp .env.example .env
 ```
 
 **Crucial Variables:**
-*   `USE_MOCK=true`: Runs the entire system using Mock Repositories (dummy data). Bypasses the need for ClickHouse or Redis. **Highly recommended for the Frontend Team during UI development.**
+*   `USE_MOCK=true`: Runs the entire system using Mock Repositories (dummy data). Bypasses the need for ClickHouse. **Highly recommended for the Frontend Team during UI development.**
 *   `USE_MOCK=false`: Connects to the real ClickHouse database.
 *   `CLICKHOUSE_URL`, `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`: Production database credentials.
-*   `REDIS_URL`: Redis Cache connection string.
 *   `OPENAI_API_KEY`: *(Optional)* OpenAI API key for the Chatbot module. Without it, the chatbot endpoint returns `503`.
 *   `OPENAI_BASE_URL`: *(Optional)* Custom API base URL (e.g., to use Groq, Nvidia NIM, or Gemini instead of OpenAI).
 *   `OPENAI_MODEL`: *(Optional)* Model to use, defaults to `gpt-4o-mini`.
@@ -98,7 +97,7 @@ npm run start:worker:prod
 
 ### 5. Run with Docker (For Deployment)
 
-If you want to deploy the complete stack (API, Worker, ClickHouse, Redis) using Docker, or if you want to integrate this Backend into the larger Big Data project network:
+If you want to deploy the complete stack (API, ClickHouse) using Docker, or if you want to integrate this Backend into the larger Big Data project network:
 
 ```bash
 # Start all services (API, Worker, DB, Cache) in the background

@@ -50,7 +50,7 @@ export class ClickHouseNewsRepository implements INewsRepository {
 
     if (filters) {
       if (filters.sentiment) {
-        whereClause += ` AND sentiment = {sentiment:String}`;
+        whereClause += ` AND lower(sentiment) = lower({sentiment:String})`;
         queryParams.sentiment = filters.sentiment;
       }
       if (filters.category) {
@@ -63,6 +63,14 @@ export class ClickHouseNewsRepository implements INewsRepository {
       if (filters.source) {
         whereClause += ` AND positionCaseInsensitive(sourceName, {source:String}) > 0`;
         queryParams.source = filters.source;
+      }
+      if (filters.search) {
+        whereClause += ` AND (
+          positionCaseInsensitive(title, {search:String}) > 0 OR 
+          positionCaseInsensitive(subtitle, {search:String}) > 0 OR 
+          positionCaseInsensitive(rawBody, {search:String}) > 0
+        )`;
+        queryParams.search = filters.search;
       }
     }
 

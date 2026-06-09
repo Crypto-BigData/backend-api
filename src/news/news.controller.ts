@@ -21,11 +21,12 @@ export class NewsController {
     const from = query.fromTime ? Number(query.fromTime) : now - 7 * 24 * 60 * 60 * 1000;
     const to = query.toTime ? Number(query.toTime) : now;
 
-    const filters = query.sentiment || query.category || query.source
+    const filters = query.sentiment || query.category || query.source || query.search
       ? {
           sentiment: query.sentiment,
           category: query.category,
           source: query.source,
+          search: query.search,
         }
       : undefined;
 

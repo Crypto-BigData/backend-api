@@ -59,6 +59,14 @@ export class NewsQueryDto {
   @IsOptional()
   @IsString()
   source?: string;
+
+  @ApiPropertyOptional({
+    description: 'Search string across title, subtitle, and content',
+    example: 'Bitcoin',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
 
 export class NewsLimitQueryDto {

@@ -16,17 +16,6 @@ services:
     networks:
       - bigdata_net
 
-  redis:
-    image: redis:7-alpine
-    container_name: crypto_redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    networks:
-      - bigdata_net
-
   api:
     build:
       context: .
@@ -39,10 +28,8 @@ services:
     environment:
       # Ghi đè cấu hình kết nối tới DB trong Docker Network thay vì localhost
       - CLICKHOUSE_URL=http://crypto_clickhouse:8123
-      - REDIS_URL=redis://crypto_redis:6379
     depends_on:
       - clickhouse
-      - redis
     networks:
       - bigdata_net
     healthcheck:
@@ -64,7 +51,6 @@ services:
   #     - .env
   #   environment:
   #     - CLICKHOUSE_URL=http://crypto_clickhouse:8123
-  #     - REDIS_URL=redis://crypto_redis:6379
   #     - INTERNAL_API_BASE=http://api:3000
   #   depends_on:
   #     api:
@@ -79,4 +65,3 @@ networks:
 
 volumes:
   clickhouse_data:
-  redis_data:
