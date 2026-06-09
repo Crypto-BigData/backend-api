@@ -96,6 +96,25 @@ npm run build:worker
 npm run start:worker:prod
 ```
 
+### 5. Run with Docker (For Deployment)
+
+If you want to deploy the complete stack (API, Worker, ClickHouse, Redis) using Docker, or if you want to integrate this Backend into the larger Big Data project network:
+
+```bash
+# Start all services (API, Worker, DB, Cache) in the background
+docker-compose up -d --build
+
+# View logs to verify services are running
+docker-compose logs -f api
+docker-compose logs -f worker
+
+# Stop all services
+docker-compose down
+```
+
+> **Note:** 
+> The `docker-compose.yml` is pre-configured with a network called `bigdata_net`. To attach these backend containers to the master Big Data Docker Compose network, simply set `external: true` in the `networks` block.
+
 ---
 
 ## 📘 API Contract & Conventions

@@ -13,6 +13,8 @@ services:
       nofile:
         soft: 262144
         hard: 262144
+    networks:
+      - bigdata_net
 
   redis:
     image: redis:7-alpine
@@ -22,6 +24,58 @@ services:
     volumes:
       - redis_data:/data
     restart: unless-stopped
+    networks:
+      - bigdata_net
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crypto_api
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # Ghi đè cấu hình kết nối tới DB trong Docker Network thay vì localhost
+      - CLICKHOUSE_URL=http://crypto_clickhouse:8123
+      - REDIS_URL=redis://crypto_redis:6379
+    depends_on:
+      - clickhouse
+      - redis
+    networks:
+      - bigdata_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/kline/time-now || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # Bỏ comment để khởi chạy Crawler Worker tự động nạp dữ liệu.
+  # Chỉ sử dụng khi hệ thống không có luồng dữ liệu (Data Pipeline) nào khác đang ghi vào Database.
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: crypto_worker
+  #   command: npm run start:worker:prod
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - CLICKHOUSE_URL=http://crypto_clickhouse:8123
+  #     - REDIS_URL=redis://crypto_redis:6379
+  #     - INTERNAL_API_BASE=http://api:3000
+  #   depends_on:
+  #     api:
+  #       condition: service_healthy
+  #   networks:
+  #     - bigdata_net
+
+networks:
+  bigdata_net:
+    # Cài đặt external: true để tham gia vào mạng Docker đã được tạo trước
+    external: false
 
 volumes:
   clickhouse_data:
