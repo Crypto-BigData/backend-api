@@ -92,7 +92,7 @@ export class ClickHouseOverviewRepository implements IOverviewRepository {
             ticker, 
             argMax(close, openTime) AS lastPrice, 
             argMin(close, openTime) AS pastPrice, 
-            ((argMax(close, openTime) - argMin(close, openTime)) / argMin(close, openTime)) * 100 AS priceChangePercent24h 
+            ((argMax(close, openTime) - argMin(close, openTime)) / nullIf(argMin(close, openTime), 0)) * 100 AS priceChangePercent24h 
         FROM future_kline_5m FINAL 
         WHERE openTime >= toUnixTimestamp(now() - INTERVAL 1 DAY) * 1000 
         GROUP BY ticker 
@@ -138,8 +138,8 @@ export class ClickHouseOverviewRepository implements IOverviewRepository {
         FROM future_kline_5m FINAL 
         WHERE openTime >= toUnixTimestamp(now() - INTERVAL 7 DAY) * 1000 
         GROUP BY ticker 
-        HAVING averageVolume7d > 0 AND (lastVolume24h / averageVolume7d) > {threshold:Float64} 
-        ORDER BY (lastVolume24h / averageVolume7d) DESC 
+        HAVING averageVolume7d > 0 AND (lastVolume24h / nullIf(averageVolume7d, 0)) > {threshold:Float64} 
+        ORDER BY (lastVolume24h / nullIf(averageVolume7d, 0)) DESC 
         LIMIT {limit:UInt32}
       `;
 
