@@ -17,7 +17,6 @@ export class ClickHouseIndicatorsRepository implements IIndicatorsRepository {
     fromTime: number,
     toTime: number,
     interval: number,
-    lookbackCandles: number,
   ): Promise<IndicatorCandle[]> {
     if (interval % 300_000 !== 0 || interval <= 0) {
       throw new BadRequestException(
@@ -26,32 +25,53 @@ export class ClickHouseIndicatorsRepository implements IIndicatorsRepository {
     }
 
     const countNeeded = Math.floor(interval / 300_000);
+    const includeIndicators = interval === 300_000;
 
-    // Mở rộng fromTime về phía trước để lấy thêm candles cho indicator warmup.
-    // Nếu adjustedFromTime nhỏ hơn data range thực tế trong ClickHouse,
-    // WHERE clause tự filter — service layer xử lý graceful với ít data hơn expected.
-    const adjustedFromTime = fromTime - lookbackCandles * interval;
+    let query: string;
 
-    const query = `
-      SELECT
-          bucket * {interval:UInt64} AS openTime,
-          argMin(open, openTime) AS open,
-          max(high) AS high,
-          min(low) AS low,
-          argMax(close, openTime) AS close,
-          sum(volume) AS volume
-      FROM (
-          SELECT *, intDiv(openTime, {interval:UInt64}) AS bucket
-          FROM future_kline_5m FINAL
-          WHERE ticker = {ticker:String}
-            AND openTime >= {adjustedFromTime:UInt64}
-            AND openTime <= {toTime:UInt64}
-          ORDER BY openTime ASC
-      )
-      GROUP BY bucket
-      HAVING count() = {countNeeded:UInt64}
-      ORDER BY bucket ASC
-    `;
+    if (includeIndicators) {
+      query = `
+        SELECT
+            a.openTime AS openTime,
+            a.open AS open,
+            a.high AS high,
+            a.low AS low,
+            a.close AS close,
+            a.volume AS volume,
+            b.ma20 AS ma20,
+            b.ma50 AS ma50,
+            b.rsi AS rsi,
+            b.bb_upper AS bb_upper,
+            b.bb_lower AS bb_lower
+        FROM future_kline_5m FINAL a
+        LEFT JOIN kline_indicators FINAL b ON a.ticker = b.ticker AND a.openTime = b.openTime
+        WHERE a.ticker = {ticker:String}
+          AND a.openTime >= {fromTime:UInt64}
+          AND a.openTime <= {toTime:UInt64}
+        ORDER BY a.openTime ASC
+      `;
+    } else {
+      query = `
+        SELECT
+            bucket * {interval:UInt64} AS openTime,
+            argMin(open, openTime) AS open,
+            max(high) AS high,
+            min(low) AS low,
+            argMax(close, openTime) AS close,
+            sum(volume) AS volume
+        FROM (
+            SELECT *, intDiv(openTime, {interval:UInt64}) AS bucket
+            FROM future_kline_5m FINAL
+            WHERE ticker = {ticker:String}
+              AND openTime >= {fromTime:UInt64}
+              AND openTime <= {toTime:UInt64}
+            ORDER BY openTime ASC
+        )
+        GROUP BY bucket
+        HAVING count() = {countNeeded:UInt64}
+        ORDER BY bucket ASC
+      `;
+    }
 
     try {
       const resultSet = await this.clickhouse.query({
@@ -59,10 +79,7 @@ export class ClickHouseIndicatorsRepository implements IIndicatorsRepository {
         query_params: {
           ticker,
           interval,
-          // Guard: ClickHouse param type UInt64 không chấp nhận giá trị âm.
-          // adjustedFromTime có thể âm nếu fromTime rất nhỏ (gần epoch 0),
-          // dù trong thực tế crypto data bắt đầu từ ~2017 nên rất hiếm xảy ra.
-          adjustedFromTime: Math.max(0, adjustedFromTime),
+          fromTime: Math.max(0, fromTime),
           toTime,
           countNeeded,
         },
@@ -71,14 +88,26 @@ export class ClickHouseIndicatorsRepository implements IIndicatorsRepository {
 
       const rawData = await resultSet.json<any>();
 
-      return rawData.map((row: any) => ({
-        openTime: Number(row.openTime),
-        open: row.open,
-        high: row.high,
-        low: row.low,
-        close: row.close,
-        volume: row.volume,
-      }));
+      return rawData.map((row: any) => {
+        const candle: IndicatorCandle = {
+          openTime: Number(row.openTime),
+          open: row.open,
+          high: row.high,
+          low: row.low,
+          close: row.close,
+          volume: row.volume,
+        };
+        
+        if (includeIndicators) {
+          if (row.ma20) candle.ma20 = String(row.ma20);
+          if (row.ma50) candle.ma50 = String(row.ma50);
+          if (row.rsi) candle.rsi = String(row.rsi);
+          if (row.bb_upper) candle.bb_upper = String(row.bb_upper);
+          if (row.bb_lower) candle.bb_lower = String(row.bb_lower);
+        }
+
+        return candle;
+      });
     } catch (error) {
       this.logger.error(
         `Failed to fetch candles for indicators, ticker=${ticker}`,

@@ -10,6 +10,11 @@ export interface IndicatorCandle {
   low: string;
   close: string;
   volume: string;
+  ma20?: string;
+  ma50?: string;
+  rsi?: string;
+  bb_upper?: string;
+  bb_lower?: string;
 }
 
 export interface IIndicatorsRepository {
@@ -28,6 +33,5 @@ export interface IIndicatorsRepository {
     fromTime: number,
     toTime: number,
     interval: number,
-    lookbackCandles: number,
   ): Promise<IndicatorCandle[]>;
 }
