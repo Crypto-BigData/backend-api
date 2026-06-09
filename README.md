@@ -10,7 +10,7 @@ Built with **NestJS**, the project features a fully decoupled architecture separ
 
 The system consists of two independent processes sharing the same database:
 
-1. **API Server (Port 3000):** **Read-only**. Handles requests from the Frontend, queries ClickHouse, performs complex application-layer calculations (e.g., Technical Indicators), and returns results. Leverages `cache-manager` with Redis for high-speed response caching.
+1. **API Server (Port 3000):** **Read-only**. Acts as a Data Gateway, handling requests from the Frontend, querying pre-aggregated data and computed facts from ClickHouse, and returning results. Leverages `cache-manager` with Redis for high-speed response caching.
 2. **Worker Service (Port 3002):** **Write-only** (Crawler). Fetches data from Binance (Market Data) and CoinDesk (News), then ingests it into ClickHouse. Utilizes Redis Distributed Locks to prevent duplicate cron jobs when scaled.
    > **Note:** If the Data Team already has a robust Data Pipeline (e.g., Spark/Kafka/Airflow) handling ClickHouse ingestion, **you do not need to run this Worker Service**.
 
@@ -21,7 +21,7 @@ The system consists of two independent processes sharing the same database:
 *   **Market Data (`/kline`)**: Retrieves candlestick (OHLCV) data with the ability to dynamically aggregate 5-minute candles into higher timeframes directly via SQL.
 *   **News (`/news`)**: Provides high-speed paginated market news using parallel count and fetch queries.
 *   **Overview (`/overview`)**: Dashboard aggregates including Market Summary, Top Gainers/Losers, and Volume Spike anomaly detection.
-*   **Indicators (`/indicators`)**: Blazing-fast in-memory calculation engine for technical indicators (SMA, EMA, Wilder's RSI, Bollinger Bands) entirely independent of DB-native functions.
+*   **Indicators (`/indicators`)**: Ultra-lightweight Data Gateway endpoint that fetches pre-calculated technical indicators (MA, RSI, Bollinger Bands) directly from ClickHouse, enforcing a "Smart Pipeline, Dumb API" architecture.
 *   **News Impact (`/news-impact`)**: Analyzes the impact of news on price action using a highly optimized **2-phase querying strategy** (equality lookup) to prevent timeouts caused by distributed range JOINs in ClickHouse.
 *   **Chatbot (`/chatbot`)**: AI-powered chatbot using **OpenAI Function Calling**. Queries internal APIs (kline, news, time-now) to answer natural language questions about crypto markets. Multi-round tool loop with 10s AbortController timeout.
 *   **Signals (`/signals`)**: Read-only endpoint serving pre-calculated trading alerts from the Worker.
