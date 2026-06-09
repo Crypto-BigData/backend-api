@@ -25,11 +25,10 @@ export class ClickHouseIndicatorsRepository implements IIndicatorsRepository {
     }
 
     const countNeeded = Math.floor(interval / 300_000);
-    const includeIndicators = interval === 300_000;
 
     let query: string;
 
-    if (includeIndicators) {
+    if (interval === 300_000) {
       query = `
         SELECT
             a.openTime AS openTime,
@@ -51,25 +50,46 @@ export class ClickHouseIndicatorsRepository implements IIndicatorsRepository {
         ORDER BY a.openTime ASC
       `;
     } else {
+      // Aggregate 5m candles into higher timeframe, then compute
+      // MA20, MA50, and Bollinger Bands using ClickHouse window functions.
+      // RSI is intentionally excluded because Wilder's Smoothing is recursive
+      // and cannot be accurately expressed in pure SQL.
       query = `
         SELECT
-            bucket * {interval:UInt64} AS openTime,
-            argMin(open, openTime) AS open,
-            max(high) AS high,
-            min(low) AS low,
-            argMax(close, openTime) AS close,
-            sum(volume) AS volume
+            openTime,
+            open,
+            high,
+            low,
+            close,
+            volume,
+            avg(close) OVER w20 AS ma20,
+            avg(close) OVER w50 AS ma50,
+            avg(close) OVER w20 + 2 * stddevPop(close) OVER w20 AS bb_upper,
+            avg(close) OVER w20 - 2 * stddevPop(close) OVER w20 AS bb_lower
         FROM (
-            SELECT *, intDiv(openTime, {interval:UInt64}) AS bucket
-            FROM future_kline_5m FINAL
-            WHERE ticker = {ticker:String}
-              AND openTime >= {fromTime:UInt64}
-              AND openTime <= {toTime:UInt64}
-            ORDER BY openTime ASC
+            SELECT
+                bucket * {interval:UInt64} AS openTime,
+                argMin(open, openTime) AS open,
+                max(high) AS high,
+                min(low) AS low,
+                argMax(close, openTime) AS close,
+                sum(volume) AS volume
+            FROM (
+                SELECT *, intDiv(openTime, {interval:UInt64}) AS bucket
+                FROM future_kline_5m FINAL
+                WHERE ticker = {ticker:String}
+                  AND openTime >= {fromTime:UInt64}
+                  AND openTime <= {toTime:UInt64}
+                ORDER BY openTime ASC
+            )
+            GROUP BY bucket
+            HAVING count() = {countNeeded:UInt64}
+            ORDER BY bucket ASC
         )
-        GROUP BY bucket
-        HAVING count() = {countNeeded:UInt64}
-        ORDER BY bucket ASC
+        WINDOW
+            w20 AS (ORDER BY openTime ROWS 19 PRECEDING),
+            w50 AS (ORDER BY openTime ROWS 49 PRECEDING)
+        ORDER BY openTime ASC
       `;
     }
 
@@ -97,14 +117,14 @@ export class ClickHouseIndicatorsRepository implements IIndicatorsRepository {
           close: row.close,
           volume: row.volume,
         };
-        
-        if (includeIndicators) {
-          if (row.ma20) candle.ma20 = String(row.ma20);
-          if (row.ma50) candle.ma50 = String(row.ma50);
-          if (row.rsi) candle.rsi = String(row.rsi);
-          if (row.bb_upper) candle.bb_upper = String(row.bb_upper);
-          if (row.bb_lower) candle.bb_lower = String(row.bb_lower);
-        }
+        // Indicators are available for all timeframes:
+        // 5m: from Spark-computed kline_indicators table (includes RSI)
+        // 15m/1h/4h: from ClickHouse window functions (MA + BB only)
+        if (row.ma20) candle.ma20 = String(row.ma20);
+        if (row.ma50) candle.ma50 = String(row.ma50);
+        if (row.rsi) candle.rsi = String(row.rsi);
+        if (row.bb_upper) candle.bb_upper = String(row.bb_upper);
+        if (row.bb_lower) candle.bb_lower = String(row.bb_lower);
 
         return candle;
       });

@@ -28,13 +28,6 @@ export class IndicatorsService {
 
     const result: IndicatorResult = { ticker, interval };
 
-    // DUMB API: Do not compute or map indicators for timeframes > 5m.
-    // Financial indicators must be computed natively on their respective timeframes.
-    // Since our Spark pipeline currently only computes on 5m data, we return empty.
-    if (interval !== 300_000) {
-      return result;
-    }
-
     if (indicators.includes('ma')) {
       result.ma20 = candles
         .filter((c) => c.ma20)
@@ -50,7 +43,8 @@ export class IndicatorsService {
         }));
     }
 
-    if (indicators.includes('rsi')) {
+    // RSI uses Wilder's Smoothing (recursive), only available for 5m (Spark-computed)
+    if (indicators.includes('rsi') && interval === 300_000) {
       result.rsi = candles
         .filter((c) => c.rsi)
         .map((c) => ({
