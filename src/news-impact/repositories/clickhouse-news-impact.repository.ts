@@ -157,13 +157,13 @@ export class ClickHouseNewsImpactRepository implements INewsImpactRepository {
       const newsQuery = `
         SELECT id, title, sentiment, publishedOn
         FROM news FINAL
-        WHERE id = {newsId:UInt64}
+        WHERE id = {newsId:String}
         LIMIT 1
       `;
 
       const newsResult = await this.clickhouse.query({
         query: newsQuery,
-        query_params: { newsId },
+        query_params: { newsId: String(newsId) },
         format: 'JSONEachRow',
       });
       const newsRows = await newsResult.json<any>();
