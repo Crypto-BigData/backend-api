@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 export class VolumeSpikeQueryDto {
   @ApiPropertyOptional({
@@ -6,6 +7,8 @@ export class VolumeSpikeQueryDto {
     example: '2.0',
     default: '2.0',
   })
+  @IsOptional()
+  @IsString()
   threshold?: string = '2.0';
 
   @ApiPropertyOptional({
@@ -13,5 +16,7 @@ export class VolumeSpikeQueryDto {
     example: '10',
     default: '10',
   })
+  @IsOptional()
+  @IsString()
   limit?: string = '10';
 }

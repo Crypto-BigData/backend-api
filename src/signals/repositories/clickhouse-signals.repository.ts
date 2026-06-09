@@ -13,7 +13,7 @@ export class ClickHouseSignalsRepository implements ISignalsRepository {
     private readonly clickhouse: ClickHouseClient,
   ) {}
 
-  async getActiveSignals(limit: number): Promise<TradingSignal[]> {
+  async getActiveSignals(limit: number, ticker?: string): Promise<TradingSignal[]> {
     try {
       const query = `
         SELECT 
@@ -24,13 +24,14 @@ export class ClickHouseSignalsRepository implements ISignalsRepository {
             reason,
             timestamp
         FROM signals
+        ${ticker ? 'WHERE ticker = {ticker: String}' : ''}
         ORDER BY timestamp DESC
         LIMIT {limit: UInt32}
       `;
 
       const resultSet = await this.clickhouse.query({
         query,
-        query_params: { limit },
+        query_params: { limit, ticker },
         format: 'JSONEachRow',
       });
 

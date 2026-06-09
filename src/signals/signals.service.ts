@@ -10,7 +10,7 @@ export class SignalsService {
     private readonly repository: ISignalsRepository,
   ) {}
 
-  async getActiveSignals(limit: number = 10): Promise<TradingSignal[]> {
-    return this.repository.getActiveSignals(limit);
+  async getActiveSignals(limit: number, ticker?: string) {
+    return this.repository.getActiveSignals(limit, ticker);
   }
 }
