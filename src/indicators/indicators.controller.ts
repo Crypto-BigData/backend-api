@@ -47,7 +47,7 @@ export class IndicatorsController {
     const to = query.toTime ? Number(query.toTime) : now;
     const intervalMs = Number(query.interval ?? '300000');
     const tickerStr = query.ticker?.toUpperCase() ?? 'BTCUSDT';
-
+    
     // 3. Delegate to service
     return this.indicatorsService.calculate(
       tickerStr,
