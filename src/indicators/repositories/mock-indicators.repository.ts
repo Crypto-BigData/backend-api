@@ -8,15 +8,12 @@ export class MockIndicatorsRepository implements IIndicatorsRepository {
     fromTime: number,
     toTime: number,
     interval: number,
-    lookbackCandles: number,
   ): Promise<IndicatorCandle[]> {
     // Sinh dữ liệu giả lập quanh giá BTC ~65000 với biến động nhỏ.
-    // Bao gồm cả lookback candles phía trước fromTime.
-    const adjustedFromTime = fromTime - lookbackCandles * interval;
     const candles: IndicatorCandle[] = [];
 
     let basePrice = ticker === 'BTCUSDT' ? 65000 : ticker === 'ETHUSDT' ? 3500 : 100;
-    let currentTime = adjustedFromTime;
+    let currentTime = fromTime;
 
     while (currentTime <= toTime) {
       // Random walk nhỏ quanh basePrice
@@ -36,6 +33,11 @@ export class MockIndicatorsRepository implements IIndicatorsRepository {
         low: low.toFixed(2),
         close: close.toFixed(2),
         volume: volume.toFixed(4),
+        ma20: (close * 1.001).toFixed(2),
+        ma50: (close * 0.99).toFixed(2),
+        rsi: (40 + Math.random() * 20).toFixed(2),
+        bb_upper: (close * 1.02).toFixed(2),
+        bb_lower: (close * 0.98).toFixed(2),
       });
 
       currentTime += interval;
