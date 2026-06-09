@@ -43,8 +43,8 @@ export class ClickHouseIndicatorsRepository implements IIndicatorsRepository {
             b.rsi AS rsi,
             b.bb_upper AS bb_upper,
             b.bb_lower AS bb_lower
-        FROM future_kline_5m FINAL a
-        LEFT JOIN kline_indicators FINAL b ON a.ticker = b.ticker AND a.openTime = b.openTime
+        FROM future_kline_5m FINAL AS a
+        LEFT JOIN kline_indicators FINAL AS b ON a.ticker = b.ticker AND a.openTime = b.openTime
         WHERE a.ticker = {ticker:String}
           AND a.openTime >= {fromTime:UInt64}
           AND a.openTime <= {toTime:UInt64}
