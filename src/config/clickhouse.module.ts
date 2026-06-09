@@ -20,10 +20,7 @@ export const CLICKHOUSE_CLIENT = 'CLICKHOUSE_CLIENT';
           database,
           username,
           password,
-          // ClickHouse trả về Decimal dạng string — giữ nguyên để tránh mất precision
-          clickhouse_settings: {
-            output_format_decimal_as_string: 1,
-          },
+          // Cấu hình client mặc định
         });
       },
       inject: [ConfigService],
